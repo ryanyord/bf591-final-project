@@ -88,9 +88,14 @@ ui <- fluidPage(
                      tabPanel("Data Table",
                               tableOutput('table')),
                    )
-                 )
+                 ),
+                 
+                 
                )
-      )
+      ),
+      # Tab 4: ???
+      tabPanel("???",
+      ),
     )
   )
 )
