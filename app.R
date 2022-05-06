@@ -11,83 +11,89 @@ library(colourpicker)
 # Define UI
 ui <- fluidPage(
   
-  # Title 
-  titlePanel(
-    h1("Visualize Differential Expression Results", style = "padding-bottom: 20px")
-  ),
-  
-  # Sidebar layout
-  sidebarLayout(
-    sidebarPanel(
-      
-      # Input: Select file
-      fileInput(inputId='fileupload',
-                label= 'Load differential expression results:',
-                placeholder = 'results.csv'),
-      
-      # Radio button 1: x-axis
-      radioButtons(inputId = 'xaxis',
-                   label = 'Choose x-axis variable:',
-                   choices = c('baseMean','log2FoldChange','lfcSE',
-                               'stat', 'pvalue','padj'),
-                   selected = 'log2FoldChange'),
-      
-      # Radio button 2: y-axis
-      radioButtons(inputId = 'yaxis',
-                   label = 'Choose y-axis variable:',
-                   choices = c('baseMean','log2FoldChange','lfcSE',
-                               'stat', 'pvalue','padj'),
-                   selected = 'padj'),
-      
-      # Color Selection button 1: Base Color
-      colourInput(inputId = 'basecolor',
-                  label = 'Base Point Color:',
-                  value = "#C6C6DE",
-                  showColour = "both",
-                  palette = 'square',
-                  closeOnClick = 'TRUE'),
-      
-      # Color Selection button 2: Above Threshold Color
-      colourInput(inputId = 'threshcolor',
-                  label = 'Above Threshold Color:',
-                  value = "#5A50A1",
-                  showColour = "both",
-                  palette = 'square',
-                  closeOnClick = 'TRUE'),
-      
-      # Slider: p-adjusted threshold
-      sliderInput(inputId = 'sliderp',
-                  label = 'Select the magnitude of the p-adjusted coloring:',
-                  min = -300,
-                  max = 0,
-                  value = -150),
-      
-      # Plot Button
-      actionButton(inputId = "plotButton",
-                   label = "Plot",
-                   icon = icon('chart', class="fa fa-area-chart") )
-      
-    ),
-    mainPanel(
-      # Tabs
-      tabsetPanel(
-        # Tab 1: Samples
-        tabPanel("Samples",
-                 plotOutput('volcano')),
-        # Tab 2: Counts
-        tabPanel("Counts",
-                 tableOutput('table')),
-        # Tab 3: DE
-        tabPanel("DE",
-                 tableOutput('table')),
-        # Tab 4: ????
-        tabPanel("????",
-                 tableOutput('table')),
+  mainPanel(
+    tabsetPanel(
+      # Tab 1: Samples
+      tabPanel("Samples",
+      ),
+      # Tab 2: Counts
+      tabPanel("Counts",
+      ),
+      # Tab 3: DE
+      tabPanel("DE",
+               
+               
+               # Sidebar layout
+               sidebarLayout(
+                 sidebarPanel(
+                   
+                   # Input: Select file
+                   fileInput(inputId='fileupload',
+                             label= 'Load differential expression results:',
+                             placeholder = 'results.csv'),
+                   
+                   # Radio button 1: x-axis
+                   radioButtons(inputId = 'xaxis',
+                                label = 'Choose x-axis variable:',
+                                choices = c('baseMean','log2FoldChange','lfcSE',
+                                            'stat', 'pvalue','padj'),
+                                selected = 'log2FoldChange'),
+                   
+                   # Radio button 2: y-axis
+                   radioButtons(inputId = 'yaxis',
+                                label = 'Choose y-axis variable:',
+                                choices = c('baseMean','log2FoldChange','lfcSE',
+                                            'stat', 'pvalue','padj'),
+                                selected = 'padj'),
+                   
+                   # Color Selection button 1: Base Color
+                   colourInput(inputId = 'basecolor',
+                               label = 'Base Point Color:',
+                               value = "#C6C6DE",
+                               showColour = "both",
+                               palette = 'square',
+                               closeOnClick = 'TRUE'),
+                   
+                   # Color Selection button 2: Above Threshold Color
+                   colourInput(inputId = 'threshcolor',
+                               label = 'Above Threshold Color:',
+                               value = "#5A50A1",
+                               showColour = "both",
+                               palette = 'square',
+                               closeOnClick = 'TRUE'),
+                   
+                   # Slider: p-adjusted threshold
+                   sliderInput(inputId = 'sliderp',
+                               label = 'Select the magnitude of the p-adjusted coloring:',
+                               min = -300,
+                               max = 0,
+                               value = -10),
+                   
+                   # Plot Button
+                   actionButton(inputId = "plotButton",
+                                label = "Plot",
+                                icon = icon('chart', class="fa fa-area-chart") )
+                   
+                 ),
+                 
+                 
+                 
+                 mainPanel(
+                   # Tabs
+                   tabsetPanel(
+                     # Tab 1: Samples
+                     tabPanel("Plot",
+                              plotOutput('volcano')),
+                     # Tab 2: Counts
+                     tabPanel("Data Table",
+                              tableOutput('table')),
+                   )
+                 )
+               )
       )
     )
   )
 )
-
 
 #---------------------------SERVER------------------------------------
 # Define server logic
@@ -103,7 +109,7 @@ server <- function(input, output, session) {
   #' read.csv. Return this data frame in the normal return() style.
   load_data <- reactive({
     DE_results <- read.csv(input$fileupload$datapath) %>%
-      rename(Gene = X)
+      rename(gene = 1)
     return(DE_results)
   })
   
