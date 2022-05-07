@@ -6,6 +6,7 @@ library(shiny)
 library(tidyverse)
 library(DT)
 library(colourpicker)
+options(shiny.maxRequestSize=30*1024^2)
 
 #++++++++++++++++++++++++++++++++UI++++++++++++++++++++++++++++++++++++++++++++
 # Define UI
@@ -345,6 +346,11 @@ server <- function(input, output, session) {
   
   
   #---------------------------Tab 4: Differential Expression----------------------
+  
+  
+  
+  
+#---------------------------------------------------------------------------------  
 }
 
 
