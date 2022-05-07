@@ -7,19 +7,24 @@ library(tidyverse)
 library(DT)
 library(colourpicker)
 
-#---------------------------UI------------------------------------
+#++++++++++++++++++++++++++++++++UI++++++++++++++++++++++++++++++++++++++++++++
 # Define UI
 ui <- fluidPage(
   
   mainPanel(
     tabsetPanel(
+#---------------------------Tab 1: Samples------------------------------------
       # Tab 1: Samples
       tabPanel("Samples",
       ),
+      
+#---------------------------Tab 2: Counts------------------------------------
       # Tab 2: Counts
       tabPanel("Counts",
       ),
-      # Tab 3: DE
+      
+#---------------------------Tab 3: Differential Expression-------------------
+      # Tab 3: Differential Expression
       tabPanel("DE",
                
                
@@ -93,14 +98,18 @@ ui <- fluidPage(
                  
                )
       ),
-      # Tab 4: ???
-      tabPanel("???",
+
+#---------------------------Tab 4: Gene Set Enrichment Analysis-------------------
+      # Tab 4: Gene Set Enrichment Analysis
+      tabPanel("GSEA",
       ),
     )
   )
 )
 
-#---------------------------SERVER------------------------------------
+
+
+#++++++++++++++++++++++++++++++++SERVER+++++++++++++++++++++++++++++++++++++++++
 # Define server logic
 server <- function(input, output, session) {
   
@@ -118,6 +127,11 @@ server <- function(input, output, session) {
     return(DE_results)
   })
   
+#---------------------------Tab 1: Samples-------------------------------------
+  
+#---------------------------Tab 2: Counts--------------------------------------
+  
+#---------------------------Tab 3: Differential Expression----------------------  
   #' Volcano plot
   #'
   #' @param dataf The loaded data frame.
@@ -190,6 +204,10 @@ server <- function(input, output, session) {
   output$table <- renderTable({req(input$fileupload)
     draw_table(load_data(), input$sliderp)
   })
+  
+  
+  
+#---------------------------Tab 4: Differential Expression----------------------
 }
 
 
