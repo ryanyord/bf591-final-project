@@ -23,49 +23,25 @@ ui <- fluidPage(
                  sidebarPanel(
                    
                    # Input: Select file
-                   fileInput(inputId='',
+                   fileInput(inputId='fileuploadt1',
                              label= 'Load differential expression results:',
-                             placeholder = 'results.csv'),
-                   
-                   # Radio button 1: 
-                   radioButtons(inputId = '',
-                                label = 'Choose x-axis variable:',
-                                choices = c('baseMean','log2FoldChange','lfcSE',
-                                            'stat', 'pvalue','padj'),
-                                selected = 'log2FoldChange'),
-                   
-                   # Radio button 2: 
-                   radioButtons(inputId = '',
-                                label = 'Choose y-axis variable:',
-                                choices = c('baseMean','log2FoldChange','lfcSE',
-                                            'stat', 'pvalue','padj'),
-                                selected = 'padj'),
-                   
-                   # Slider: 
-                   sliderInput(inputId = '',
-                               label = 'Select the magnitude of the p-adjusted coloring:',
-                               min = -300,
-                               max = 0,
-                               value = -10),
-                   
-                   # Plot Button
-                   actionButton(inputId = "",
-                                label = "Plot",
-                                icon = icon('chart', class="fa fa-area-chart") )
+                             placeholder = 'DE_results.csv'),
                    
                  ),
-                 
                  
                  
                  mainPanel(
                    # Tabs
                    tabsetPanel(
-                     # Tab 1: Samples
-                     tabPanel("1",
-                     ),
-                     # Tab 2: Counts
-                     tabPanel("2",
-                     ),
+                     # Tab 1: Summary
+                     tabPanel("Summary",
+                        tableOutput('table_t1')),
+                     # Tab 2: Table
+                     tabPanel("Table",
+                        tableOutput('table_t1_2')),
+                     # Tab 3: Plots
+                     tabPanel("Plots",
+                        plotOutput('hist_plots')),
                    )
                  ),
                  
@@ -257,18 +233,74 @@ ui <- fluidPage(
                  mainPanel(
                    # Tabs
                    tabsetPanel(
-                     # Tab 1: Samples
-                     tabPanel("1",
+                     # Tab 1: Normalized Enrichment Score
+                     tabPanel("NES",
+                              
+                        sidebarPanel(
+                          # Slider: Slider to adjust number of top pathways to plot by adjusted p-value
+                          sliderInput(inputId = '',
+                                      label = 'Select the magnitude of the p-adjusted coloring:',
+                                      min = -300,
+                                      max = 0,
+                                      value = -10),
+                          
+                        ),
+                        mainPanel(
+                          
+                        ),
                      ),
-                     # Tab 2: Counts
-                     tabPanel("2",
+                     # Tab 2: Results Table
+                     tabPanel("Results Table",
+                              
+                        sidebarPanel(
+                          # Radio button 1: 
+                          radioButtons(inputId = '',
+                                       label = 'Choose x-axis variable:',
+                                       choices = c('baseMean','log2FoldChange','lfcSE',
+                                                   'stat', 'pvalue','padj'),
+                                       selected = 'log2FoldChange'),
+                          
+                          # Radio button 2: 
+                          radioButtons(inputId = '',
+                                       label = 'Choose y-axis variable:',
+                                       choices = c('baseMean','log2FoldChange','lfcSE',
+                                                   'stat', 'pvalue','padj'),
+                                       selected = 'padj'),
+                          
+                          # Slider: Slider to adjust number of top pathways to plot by adjusted p-value
+                          sliderInput(inputId = '',
+                                      label = 'Select the magnitude of the p-adjusted coloring:',
+                                      min = -300,
+                                      max = 0,
+                                      value = -10),
+                          
+                          # Download Button: Export current filtered and displayed table results
+                          downloadButton(''),
+                          
+                        ),
+                        mainPanel(
+                          
+                        ),
+                     ),
+                     # Tab 3: NES Scatter Plot
+                     tabPanel("NES Scatter Plot",
+                              
+                      sidebarPanel(
+                        # Slider: Slider to adjust number of top pathways to plot by adjusted p-value
+                        sliderInput(inputId = '',
+                                    label = 'Select the magnitude of the p-adjusted coloring:',
+                                    min = -300,
+                                    max = 0,
+                                    value = -10),
+                        
+                      ),
+                      mainPanel(
+                        
+                      ),
                      ),
                    )
                  ),
-                 
-                 
                )
-               
       ),
     )
   )
@@ -283,6 +315,62 @@ server <- function(input, output, session) {
   
   
   #---------------------------Tab 1: Samples-------------------------------------
+  load_data_t1 <- reactive({
+    DE_results_summary <- read.csv(input$fileuploadt1$datapath)
+    return(DE_results_summary)
+  })
+  
+  
+  
+  
+  summary_table <- function(data) {
+    sample_info <- data
+    df <- data.frame(sapply(sample_info, class)) %>%
+      as_tibble(rownames='Column Name') %>%
+      rename(Type = 2)
+    
+    df2 <- data.frame(sapply(sample_info, function(x) str_glue('{round(mean(x),2)} (+/- {round(sd(x), 2)}))'))) %>%
+      as_tibble(rownames='Column Name') %>%
+      rename(`Mean (sd)` = 2)
+    
+    df3 <- data.frame(sapply(sample_info, function(x) str_glue('{length(unique(x))} Distinct Values')))%>%
+      as_tibble(rownames='Column Name') %>%
+      rename(`Distinct Values` = 2)
+    
+    output_df <- cbind(df, (df2[2]), (df3[2])) %>%
+      mutate(`Mean (sd)` = na_if(`Mean (sd)`, "NA (+/- NA))"), 
+             `Mean (sd)` = coalesce(`Mean (sd)`, `Distinct Values`)) %>%
+      select(-`Distinct Values`) %>%
+      rename(`Mean (sd) or Distinct Values` = `Mean (sd)`)
+    
+    
+    return(output_df)
+  }
+  
+  multi_hist <- function(data) {
+    return(data %>% select_if(is.numeric) %>%
+             hist.data.frame())
+  }
+  
+  
+  
+  
+  
+  output$table_t1 <- renderTable({req(input$fileuploadt1)
+    summary_table(load_data_t1())
+  })
+  
+  output$table_t1_2 <- renderTable({req(input$fileuploadt1)
+    load_data_t1()
+  })
+  
+  output$hist_plots <- renderPlot({req(input$fileuploadt1)
+    multi_hist(load_data_t1())
+  })
+  
+  
+  
+  
   
   #---------------------------Tab 2: Counts--------------------------------------
   
@@ -345,7 +433,7 @@ server <- function(input, output, session) {
   
   
   
-  #---------------------------Tab 4: Differential Expression----------------------
+#---------------------------Tab 4: Differential Expression----------------------
   
   
   
