@@ -6,12 +6,13 @@ library(shiny)
 library(tidyverse)
 library(DT)
 library(colourpicker)
+library(Hmisc)
 options(shiny.maxRequestSize=30*1024^2)
 
 #++++++++++++++++++++++++++++++++UI++++++++++++++++++++++++++++++++++++++++++++
 # Define UI
 ui <- fluidPage(
-  
+  shinyUI(navbarPage('Hello',
   mainPanel(
     tabsetPanel(
       #---------------------------Tab 1: Samples------------------------------------
@@ -196,35 +197,9 @@ ui <- fluidPage(
                  sidebarPanel(
                    
                    # Input: Select file
-                   fileInput(inputId='',
-                             label= 'Load differential expression results:',
+                   fileInput(inputId='fgsea_res_input',
+                             label= 'Load fgsea results:',
                              placeholder = 'results.csv'),
-                   
-                   # Radio button 1: 
-                   radioButtons(inputId = '',
-                                label = 'Choose x-axis variable:',
-                                choices = c('baseMean','log2FoldChange','lfcSE',
-                                            'stat', 'pvalue','padj'),
-                                selected = 'log2FoldChange'),
-                   
-                   # Radio button 2: 
-                   radioButtons(inputId = '',
-                                label = 'Choose y-axis variable:',
-                                choices = c('baseMean','log2FoldChange','lfcSE',
-                                            'stat', 'pvalue','padj'),
-                                selected = 'padj'),
-                   
-                   # Slider: 
-                   sliderInput(inputId = '',
-                               label = 'Select the magnitude of the p-adjusted coloring:',
-                               min = -300,
-                               max = 0,
-                               value = -10),
-                   
-                   # Plot Button
-                   actionButton(inputId = "",
-                                label = "Plot",
-                                icon = icon('chart', class="fa fa-area-chart") )
                    
                  ),
                  
@@ -238,14 +213,15 @@ ui <- fluidPage(
                               
                         sidebarPanel(
                           # Slider: Slider to adjust number of top pathways to plot by adjusted p-value
-                          sliderInput(inputId = '',
-                                      label = 'Select the magnitude of the p-adjusted coloring:',
-                                      min = -300,
-                                      max = 0,
-                                      value = -10),
+                          sliderInput(inputId = 'slider_nes_barplot',
+                                      label = 'Adjust number of top pathways to plot by adjusted p-value',
+                                      min = 1,
+                                      max = 50,
+                                      value = 10),
                           
                         ),
                         mainPanel(
+                          plotOutput('nes_bar_plots')
                           
                         ),
                      ),
@@ -254,32 +230,25 @@ ui <- fluidPage(
                               
                         sidebarPanel(
                           # Radio button 1: 
-                          radioButtons(inputId = '',
-                                       label = 'Choose x-axis variable:',
-                                       choices = c('baseMean','log2FoldChange','lfcSE',
-                                                   'stat', 'pvalue','padj'),
-                                       selected = 'log2FoldChange'),
-                          
-                          # Radio button 2: 
-                          radioButtons(inputId = '',
-                                       label = 'Choose y-axis variable:',
-                                       choices = c('baseMean','log2FoldChange','lfcSE',
-                                                   'stat', 'pvalue','padj'),
-                                       selected = 'padj'),
+                          radioButtons(inputId = 'radio_sel_t4_t2',
+                                       label = 'Filter Pathways by NES',
+                                       choices = c('All Pathways','Positive Pathways','Negative Pathways'),
+                                       selected = 'All Pathways'),
+                    
                           
                           # Slider: Slider to adjust number of top pathways to plot by adjusted p-value
-                          sliderInput(inputId = '',
-                                      label = 'Select the magnitude of the p-adjusted coloring:',
-                                      min = -300,
+                          sliderInput(inputId = 'NES_table_slider',
+                                      label = 'Filter by adjusted p-value',
+                                      min = -50,
                                       max = 0,
-                                      value = -10),
+                                      value = 0),
                           
                           # Download Button: Export current filtered and displayed table results
-                          downloadButton(''),
+                          downloadButton('download_NES_table', "Download Table"),
                           
                         ),
                         mainPanel(
-                          
+                          tableOutput('NES_table_render')
                         ),
                      ),
                      # Tab 3: NES Scatter Plot
@@ -296,6 +265,7 @@ ui <- fluidPage(
                       ),
                       mainPanel(
                         
+                        
                       ),
                      ),
                    )
@@ -305,7 +275,8 @@ ui <- fluidPage(
     )
   )
 )
-
+)
+)
 
 
 #++++++++++++++++++++++++++++++++SERVER+++++++++++++++++++++++++++++++++++++++++
@@ -435,7 +406,96 @@ server <- function(input, output, session) {
   
 #---------------------------Tab 4: Differential Expression----------------------
   
+  #' load_Data
+  #'
+  #' @details Ok
+  load_data_t4 <- reactive({
+    input_f <- read.csv(input$fgsea_res_input$datapath)
+    return(input_f)
+  })
   
+  #---------------------------T1----------------------  
+  
+  # Barplot of NES
+  
+  #' Function to plot top ten positive NES and top ten negative NES pathways
+  #' in a barchart
+  #'
+  #' @param fgsea_results (tibble): the fgsea results in tibble format returned by
+  #'   the previous function
+  #' @param num_paths (int): the number of pathways for each direction (top or
+  #'   down) to include in the plot. Set this at 10.
+  #'
+  #' @return ggplot with a barchart showing the top twenty pathways ranked by positive
+  #' and negative NES
+  #' @export
+  #'
+  #' @examples fgsea_plot <- top_pathways(fgsea_results, 10)
+  top_pathways <- function(fgsea_results, num_paths){
+    
+    positive_num <- slice_max(fgsea_results, NES, n = num_paths) %>%
+      dplyr::select(pathway)
+    
+    negative_num <- slice_min(fgsea_results, NES, n = num_paths) %>%
+      dplyr::select(pathway)
+    
+    pos_neg <- bind_rows(positive_num, negative_num)
+    
+    filtered <- fgsea_results %>% 
+      filter(pathway %in% pos_neg$pathway)
+    
+    factors <- factor(filtered$pathway)
+    
+    filtered$names <- factors
+    
+    filtered$names <- fct_reorder(filtered$names, filtered$NES, max)
+    
+    p <- filtered %>%
+      ggplot() +
+      geom_bar(aes(x=names, y=NES, fill = NES > 0), stat='identity') +
+      theme_linedraw() +
+      theme(legend.position="none") +
+      scale_fill_manual(values=c("#f56262", "#6276f5")) +
+      labs(title='fgsea results for Hallmark MSigDB gene sets', x='', y='Normalized Enrichment Score (NES)') +
+      coord_flip()
+    
+    return(p)
+  }
+  
+  output$nes_bar_plots <- renderPlot({req(input$fgsea_res_input)
+    top_pathways(load_data_t4(), input$slider_nes_barplot)
+  })
+  
+  #---------------------------T2----------------------
+  
+  draw_table_NES <- function(dataf, pval_slider, selection) {
+    filtered <- filter(dataf, padj < (1*10^pval_slider))
+    
+    if (selection == 'All Pathways') {
+      
+    } else if (selection == 'Positive Pathways') {
+      filtered <- filtered %>%
+        filter(NES > 0)
+    } else if (selection == 'Negative Pathways') {
+      filtered <- filtered %>%
+        filter(NES < 0)
+    }
+    
+    return(filtered)
+  }
+  
+
+  
+  output$NES_table_render <- renderTable({req(input$fgsea_res_input)
+    draw_table_NES(load_data_t4(), input$NES_table_slider, input$radio_sel_t4_t2)
+  })
+  
+  output$download_NES_table <- downloadHandler(
+    filename = function(){"NES_Results.csv"},
+    content = function(filename){
+      write.csv(draw_table_NES(load_data_t4(), input$NES_table_slider, input$radio_sel_t4_t2), filename)
+    }
+  )
   
   
 #---------------------------------------------------------------------------------  
