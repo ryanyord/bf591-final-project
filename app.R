@@ -27,8 +27,8 @@ ui <- fluidPage(
                                       
                                       # Input: Select file
                                       fileInput(inputId='fileuploadt1',
-                                                label= 'Load differential expression results:',
-                                                placeholder = 'DE_results.csv'),
+                                                label= 'Load Sample Information:',
+                                                placeholder = 'sample_info.csv'),
                                       
                                     ),
                                     
