@@ -1,6 +1,8 @@
 # bf591-final-project
 ![website](https://i.imgur.com/TeXw1eF.png)
 
+[Video Overview](https://www.youtube.com/watch?v=27cXyJNO2Us&t=7s)
+
 # BF591 - Final Project
 app.R is my shiny app to visualize mRNA-Seq expression data profiling Huntington's Disease vs neurologically normal individuals
 
