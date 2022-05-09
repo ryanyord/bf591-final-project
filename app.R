@@ -14,7 +14,7 @@ options(shiny.maxRequestSize=30*1024^2)
 #++++++++++++++++++++++++++++++++UI++++++++++++++++++++++++++++++++++++++++++++
 # Define UI
 ui <- fluidPage(
-  shinyUI(navbarPage("mRNA-Seq Expression profiling Huntington's Disease vs neurologically normal individuals",
+  shinyUI(navbarPage("mRNA-Seq expression data profiling Huntington's Disease vs neurologically normal individuals",
                      mainPanel(
                        tabsetPanel(
                          #---------------------------Tab 1: Samples------------------------------------
@@ -44,7 +44,9 @@ ui <- fluidPage(
                                                  tableOutput('table_t1_2')),
                                         # Tab 3: Plots
                                         tabPanel("Plots",
-                                                 plotOutput('hist_plots')),
+                                                 plotOutput('hist_plots',
+                                                            width = "1200px",
+                                                            height = "1200px")),
                                       )
                                     ),
                                     
@@ -198,7 +200,9 @@ ui <- fluidPage(
                                       tabsetPanel(
                                         # Tab 1: Samples
                                         tabPanel("Plot",
-                                                 plotOutput('volcano')),
+                                                 plotOutput('volcano'),
+                                                 width = "1200px",
+                                                 height = "1200px"),
                                         # Tab 2: Counts
                                         tabPanel("Data Table",
                                                  tableOutput('table')),
@@ -243,7 +247,9 @@ ui <- fluidPage(
                                                    
                                                  ),
                                                  mainPanel(
-                                                   plotOutput('nes_bar_plots')
+                                                   plotOutput('nes_bar_plots',
+                                                              width = "800px",
+                                                              height = "800px")
                                                    
                                                  ),
                                         ),
@@ -286,7 +292,9 @@ ui <- fluidPage(
                                                    
                                                  ),
                                                  mainPanel(
-                                                   plotOutput("NES_plot_render")
+                                                   plotOutput("NES_plot_render",
+                                                              width = "800px",
+                                                              height = "800px")
                                                    
                                                    
                                                  ),
@@ -425,30 +433,58 @@ server <- function(input, output, session) {
   
   #---------------------------T2----------------------
   
-  plot_scatter_filtered <- function(filtered_df) {
+  plot_scatter_filtered <- function(non_filtered_data, filter_1, filter_2) {
     
     # Add columns for plot
-    df <- filtered_df
     
+    
+    df <- non_filtered_data %>%
+      dplyr::select(-gene)
+    
+    df$variance <- apply(df, 1, var)
+    
+    df <- dplyr::arrange(df, variance)
+    
+    df <- mutate(df, var_rank = row_number())
+    #
     df$median_count <- apply(df, 1, median)
-    
+    #
     df$zeroes <- apply(df, 1, function(x) sum(x < 0.00000000000001))
+    #
+    df$nonzeroes <- apply(df, 1, function(x) sum(x != 0))
+    
+    df_unfiltered_info <- df %>%
+      mutate(filtered_out = ifelse(((var_rank / nrow(df)) * 100 > filter_1 ) & (nonzeroes > filter_2), 'remain','filtered'))
+    
+    
+    df <- df %>%
+      filter(((var_rank / nrow(df)) * 100 > filter_1 ))
+    
+    # Filter non-zero filter 2
+    
+    df$nonzeroes <- apply(df, 1, function(x) sum(x != 0))
+    
+    df <- df %>%
+      filter(nonzeroes > filter_2)
     
     #Plot 1
-    p1 <- df %>%
+    p1 <- df_unfiltered_info %>%
       ggplot(aes()) +
-      geom_point(mapping = aes(x=median_count, y=log(variance))) +
+      geom_point(mapping = aes(x=median_count, y=log(variance), color=filtered_out)) +
       theme_light() +
       labs(x='Median Count',
-           y=str_glue('log(variance)'))
+           y=str_glue('log(variance)')
+           , color='filtered_out') +
+      scale_color_manual(values=c('lightblue', 'blue'))
     
     #Plot 2
-    p2 <- df %>%
+    p2 <- df_unfiltered_info %>%
       ggplot(aes()) +
-      geom_point(mapping = aes(x=median_count, y=zeroes)) +
+      geom_point(mapping = aes(x=median_count, y=zeroes, color=filtered_out)) +
       theme_light() +
       labs(x='Median Count',
-           y=str_glue('Zeroes'))
+           y=str_glue('Zeroes'), color='filtered_out') +
+      scale_color_manual(values=c('lightblue', 'blue'))
     
     # grid.arrange(p1, p2, ncol=2, nrow =1)
     return(grid.arrange(p1, p2, ncol=2, nrow =1))
@@ -456,7 +492,7 @@ server <- function(input, output, session) {
   
   
   output$filtered_scatterplot <- renderPlot({req(input$fileuploadt2)
-    plot_scatter_filtered(draw_table_filtered_counts(load_data_t2(), input$slider_percentile, input$slider_zero))
+    plot_scatter_filtered(load_data_t2(), input$slider_percentile, input$slider_zero)
   })
   
   #---------------------------T3----------------------
