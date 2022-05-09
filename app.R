@@ -7,6 +7,8 @@ library(tidyverse)
 library(DT)
 library(colourpicker)
 library(Hmisc)
+library(gridExtra)
+library(pheatmap)
 options(shiny.maxRequestSize=30*1024^2)
 
 #++++++++++++++++++++++++++++++++UI++++++++++++++++++++++++++++++++++++++++++++
@@ -59,35 +61,23 @@ ui <- fluidPage(
                  sidebarPanel(
                    
                    # Input: Select file
-                   fileInput(inputId='',
-                             label= 'Load differential expression results:',
-                             placeholder = 'results.csv'),
+                   fileInput(inputId='fileuploadt2',
+                             label= 'Load counts matrix:',
+                             placeholder = 'counts.csv'),
                    
-                   # Radio button 1: 
-                   radioButtons(inputId = '',
-                                label = 'Choose x-axis variable:',
-                                choices = c('baseMean','log2FoldChange','lfcSE',
-                                            'stat', 'pvalue','padj'),
-                                selected = 'log2FoldChange'),
-                   
-                   # Radio button 2: 
-                   radioButtons(inputId = '',
-                                label = 'Choose y-axis variable:',
-                                choices = c('baseMean','log2FoldChange','lfcSE',
-                                            'stat', 'pvalue','padj'),
-                                selected = 'padj'),
-                   
-                   # Slider: 
+                   # Slider 1: at least X percentile of variance
                    sliderInput(inputId = '',
-                               label = 'Select the magnitude of the p-adjusted coloring:',
-                               min = -300,
-                               max = 0,
-                               value = -10),
+                               label = 'Include genes with at least X percentile of variance:',
+                               min = 0,
+                               max = 100,
+                               value = 10),
                    
-                   # Plot Button
-                   actionButton(inputId = "",
-                                label = "Plot",
-                                icon = icon('chart', class="fa fa-area-chart") )
+                   # Slider 2: at least X samples that are non-zero
+                   sliderInput(inputId = '',
+                               label = 'Include genes with at least X samples that are non-zero:',
+                               min = 0,
+                               max = 100,
+                               value = 10),
                    
                  ),
                  
@@ -96,12 +86,19 @@ ui <- fluidPage(
                  mainPanel(
                    # Tabs
                    tabsetPanel(
-                     # Tab 1: Samples
-                     tabPanel("1",
+                     # Tab 1: Summary
+                     tabPanel("Summary",
                      ),
-                     # Tab 2: Counts
-                     tabPanel("2",
+                     # Tab 2: Scatter Plot
+                     tabPanel("Scatter Plot",
                      ),
+                     # Tab 3: Heatmap
+                     tabPanel("Heatmap",
+                     ),
+                     # Tab 4: PCA
+                     tabPanel("PCA",
+                     ),
+                     
                    )
                  ),
                  
@@ -256,14 +253,15 @@ ui <- fluidPage(
                               
                       sidebarPanel(
                         # Slider: Slider to adjust number of top pathways to plot by adjusted p-value
-                        sliderInput(inputId = '',
+                        sliderInput(inputId = 'NES_plot_slider',
                                     label = 'Select the magnitude of the p-adjusted coloring:',
-                                    min = -300,
+                                    min = -50,
                                     max = 0,
                                     value = -10),
                         
                       ),
                       mainPanel(
+                        plotOutput("NES_plot_render")
                         
                         
                       ),
@@ -344,6 +342,65 @@ server <- function(input, output, session) {
   
   
   #---------------------------Tab 2: Counts--------------------------------------
+  
+  #' load_Data
+  #'
+  #' @details Ok
+  load_data_t2 <- reactive({
+    results <- read.csv(input$fileuploadt2$datapath)
+    return(results)
+  })
+  
+  
+  
+  
+  
+  draw_table_filtered_counts <- function(dataf, filter_1, filter_2) {
+    df <- dataf %>%
+      dplyr::select(-gene)
+    
+    df$variance <- apply(df, 1, var)
+    
+    df <- dplyr::arrange(df, variance)
+    
+    df <- mutate(df, var_rank = row_number())
+    
+    # Filter percentile filter 1
+    df <- df %>%
+      filter(((var_rank / nrow(df)) * 100 > filter_1 ))
+    
+    # Filter non-zero filter 2
+    
+    df$nonzeroes <- apply(df, 1, function(x) sum(x != 0))
+    
+    df <- df %>%
+      filter(nonzeroes > filter_2)
+    
+    return(df)
+  }
+  
+  
+  
+  draw_summary_table_counts <- function(filtered_df, unfiltered_df) {
+    
+    return_df <- data.frame(sample_count = ncol(unfiltered_df),
+                            gene_count = nrow(unfiltered_df),
+                            genes_passing_filter = nrow(filtered_df),
+                            percent_genes_passing_filter = nrow(filtered_df)/nrow(unfiltered_df),
+                            genes_not_passing_filter = nrow(unfiltered_df) - nrow(filtered_df),
+                            percent_genes_not_passing_filter = 1 - (nrow(filtered_df)/nrow(unfiltered_df)))
+    
+    
+    return(return_df)
+  }
+  
+  # output$ <- renderTable({req(input$fileuploadt2)
+  #   draw_summary_table_counts(fgsdfgsdfgsdfg, input$NES_table_slider, input$radio_sel_t4_t2)
+  # })
+
+  
+  
+  
   
   #---------------------------Tab 3: Differential Expression----------------------  
   #' load_Data
@@ -469,7 +526,9 @@ server <- function(input, output, session) {
   #---------------------------T2----------------------
   
   draw_table_NES <- function(dataf, pval_slider, selection) {
-    filtered <- filter(dataf, padj < (1*10^pval_slider))
+    filtered <- filter(dataf, padj < (1*10^pval_slider)) %>%
+      mutate(pval = formatC(.$pval, digits=2, format='e')) %>%
+      mutate(padj = formatC(.$padj, digits=2, format='e'))
     
     if (selection == 'All Pathways') {
       
@@ -496,6 +555,26 @@ server <- function(input, output, session) {
       write.csv(draw_table_NES(load_data_t4(), input$NES_table_slider, input$radio_sel_t4_t2), filename)
     }
   )
+  
+  #---------------------------T3----------------------
+  plot_NES <-
+    function(dataf, slider) {
+      
+      p <- dataf %>%
+        ggplot(aes()) +
+        geom_point(mapping = aes(x=NES, y=-log10(pval),color=padj<(1*10^(slider)))) +
+        theme_light() +
+        labs(x='NES',
+             y=str_glue('-log10(pval)'), color=str_glue('Below Specified Threshold')) +
+        scale_color_manual(values=c('grey50', 'blue')) +
+        theme(legend.position="bottom")
+      
+      return(p)
+    }
+  
+  output$NES_plot_render <- renderPlot({req(input$fgsea_res_input)
+    plot_NES(load_data_t4(), input$NES_plot_slider)
+  })
   
   
 #---------------------------------------------------------------------------------  

@@ -1,0 +1,365 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(shiny)
+library(tidyverse)
+library(DT)
+library(colourpicker)
+
+
+
+load_data <- function(data) {
+    DE_results <- read.csv(data) %>%
+      rename(gene = 1)
+    return(DE_results)
+}
+
+#---------------------------Tab 1: Samples------------------------------------
+load_sample_info_data <- function(data) {
+    sample_info <- read.csv(data)
+    return(sample_info)
+  }
+
+# load_data('GSE64810_mlhd_DESeq2_diffexp_DESeq2_outlier_trimmed_adjust.csv')
+
+tab1_data <- load_sample_info_data('SraRunTable.csv')
+
+summary_table <- function(data) {
+    sample_info <- data
+    df <- data.frame(sapply(sample_info, class)) %>%
+      as_tibble(rownames='Column Name') %>%
+      rename(Type = 2)
+    
+    df2 <- data.frame(sapply(sample_info, function(x) str_glue('{round(mean(x),2)} (+/- {round(sd(x), 2)}))'))) %>%
+      as_tibble(rownames='Column Name') %>%
+      rename(`Mean (sd)` = 2)
+    
+    df3 <- data.frame(sapply(sample_info, function(x) str_glue('{length(unique(x))} Distinct Values')))%>%
+      as_tibble(rownames='Column Name') %>%
+      rename(`Distinct Values` = 2)
+    
+    output_df <- cbind(df, (df2[2]), (df3[2])) %>%
+       mutate(`Mean (sd)` = na_if(`Mean (sd)`, "NA (+/- NA))"), 
+              `Mean (sd)` = coalesce(`Mean (sd)`, `Distinct Values`)) %>%
+      select(-`Distinct Values`) %>%
+        rename(`Mean (sd) or Distinct Values` = `Mean (sd)`)
+
+      
+    return(df2)
+}
+# Columns with missing data are ignored!!! @@@@@@@@@@@@
+
+summary_table(tab1_data)
+
+
+
+
+
+
+#-------------Part 2---------
+
+# 
+# tab1_data
+# ggplot(gather(tab1_data, cols, value), aes(x = value)) + 
+#        geom_histogram(binwidth = 20) + facet_grid(.~cols)
+
+
+
+
+# tab1_data %>% select_if(is.numeric) %>%  gather(cols, value) %>%  ggplot(aes(x = value)) + geom_histogram() + facet_grid(.~cols)
+
+library(Hmisc)
+tab1_data %>% select_if(is.numeric) %>%
+hist.data.frame()
+
+
+
+```
+```{r}
+
+#---------------------------Tab 4: GSEA------------------------------------
+library(fgsea)
+library(data.table)
+
+de_res <- read_csv('GSE64810_mlhd_DESeq2_diffexp_DESeq2_outlier_trimmed_adjust.csv')
+
+de_res2 <- de_res %>% 
+  dplyr::select(symbol, stat) %>% 
+  group_by(symbol) %>% 
+  dplyr::summarize(stat=mean(stat))
+
+de_res2
+
+
+de_res2_ranks <- deframe(de_res2)
+head(de_res2_ranks, 20)
+
+# MSigDB https://www.gsea-msigdb.org/gsea/downloads.jsp
+hallmark_pathways <- gmtPathways('h.all.v7.5.1.symbols.gmt')
+
+fgseaRes <- fgsea(pathways=hallmark_pathways, stats=de_res2_ranks) %>%
+  data.frame() %>%
+  dplyr::select(-leadingEdge)
+
+fgseaRes
+# write.csv(fgseaRes, 'fgsea_results_GSE64810_mlhd_DESeq2_diffexp_DESeq2.csv')
+
+#---------------------------------------------------------------------------------
+
+# Barplot of NES
+
+#' Function to plot top ten positive NES and top ten negative NES pathways
+#' in a barchart
+#'
+#' @param fgsea_results (tibble): the fgsea results in tibble format returned by
+#'   the previous function
+#' @param num_paths (int): the number of pathways for each direction (top or
+#'   down) to include in the plot. Set this at 10.
+#'
+#' @return ggplot with a barchart showing the top twenty pathways ranked by positive
+#' and negative NES
+#' @export
+#'
+#' @examples fgsea_plot <- top_pathways(fgsea_results, 10)
+top_pathways <- function(fgsea_results, num_paths){
+  
+  positive_num <- slice_max(fgsea_results, NES, n = num_paths) %>%
+    dplyr::select(pathway)
+  
+  negative_num <- slice_min(fgsea_results, NES, n = num_paths) %>%
+    dplyr::select(pathway)
+  
+  pos_neg <- bind_rows(positive_num, negative_num)
+  
+  filtered <- fgsea_results %>% 
+    filter(pathway %in% pos_neg$pathway)
+  
+  factors <- factor(filtered$pathway)
+  
+  filtered$names <- factors
+  
+  filtered$names <- fct_reorder(filtered$names, filtered$NES, max)
+  
+  p <- filtered %>%
+    ggplot() +
+    geom_bar(aes(x=names, y=NES, fill = NES > 0), stat='identity') +
+    theme_linedraw() +
+    theme(legend.position="none") +
+    scale_fill_manual(values=c("#f56262", "#6276f5")) +
+    labs(title='fgsea results for Hallmark MSigDB gene sets', x='', y='Normalized Enrichment Score (NES)') +
+    coord_flip()
+  
+  return(p)
+}
+
+top_pathways(fgseaRes, 10)
+
+```
+```{r}
+
+draw_table_NES <- function(dataf, pval_slider, selection) {
+    filtered <- filter(dataf, padj < (1*10^pval_slider))
+
+    if (selection == 'All Pathways') {
+
+    } else if (selection == 'Positive Pathways') {
+      filtered <- filtered %>%
+        filter(NES > 0)
+    } else if (selection == 'Negative Pathways') {
+      filtered <- filtered %>%
+        filter(NES < 0)
+    }
+
+    return(filtered)
+}
+
+draw_table_NES(fgseaRes, 20, 'Positive Pathways')
+
+
+
+```
+
+```{r}
+#t4_t3  Scatter Plot
+
+
+plot_NES <-
+    function(dataf, slider) {
+      
+      p <- dataf %>%
+        ggplot(aes()) +
+        geom_point(mapping = aes(x=NES, y=-log10(pval),color=padj<(1*10^(slider)))) +
+        theme_light() +
+        labs(x='NES',
+             y=str_glue('-log10(pval)'), color=str_glue('ok')) +
+        scale_color_manual(values=c('grey50', 'blue')) +
+        theme(legend.position="bottom")
+      
+      return(p)
+    }
+
+plot_NES(fgseaRes, -10)
+```
+
+```{r}
+#---------------------------Tab 2: Counts------------------------------------
+
+
+counts_file <- read_csv('GSE64810_mlhd_DESeq2_norm_counts_adjust.csv')
+
+# counts_file
+
+# Percentile = (n/N) × 100
+
+draw_table_filtered_counts <- function(dataf, filter_1, filter_2) {
+    df <- dataf %>%
+      dplyr::select(-gene)
+
+    df$variance <- apply(df, 1, var)
+
+    df <- dplyr::arrange(df, variance)
+
+    df <- mutate(df, var_rank = row_number())
+
+    # Filter percentile filter 1
+    df <- df %>%
+      filter(((var_rank / nrow(df)) * 100 > filter_1 ))
+
+    # Filter non-zero filter 2
+
+    df$nonzeroes <- apply(df, 1, function(x) sum(x != 0))
+    
+    df <- df %>%
+      filter(nonzeroes > filter_2)
+
+    return(df)
+}
+
+filtered_table <- draw_table_filtered_counts(counts_file, 55, 20)
+
+
+draw_summary_table_counts <- function(filtered_df, unfiltered_df) {
+  
+  
+  
+  
+  return_df <- data.frame(sample_count = ncol(unfiltered_df),
+                          gene_count = nrow(unfiltered_df),
+                          genes_passing_filter = nrow(filtered_df),
+                          percent_genes_passing_filter = nrow(filtered_df)/nrow(unfiltered_df),
+                          genes_not_passing_filter = nrow(unfiltered_df) - nrow(filtered_df),
+                          percent_genes_not_passing_filter = 1 - (nrow(filtered_df)/nrow(unfiltered_df)))
+    
+    
+  
+  return(return_df)
+}
+
+
+
+draw_summary_table_counts(filtered_table, counts_file)
+
+```
+```{r}
+#heatmap
+library("pheatmap")
+
+
+draw_heatmap <- function(filtered_df) {
+  
+  filtered_df <- filtered_df %>%
+    dplyr::select(-variance, -var_rank, -nonzeroes)
+  
+  filtered_matrix <- data.matrix(filtered_df)  
+    
+  
+  return(pheatmap(data.matrix(filtered_matrix), scale='row',  show_colnames = F))
+}
+
+draw_heatmap(filtered_table)
+
+
+
+# pheatmap(data.matrix(filtered_table), scale='row')
+
+
+
+
+```
+```{r}
+# Tab with diagnostic scatter plots, where genes passing filters are marked in a darker color, and genes filtered out are lighter:
+
+
+library("gridExtra")
+
+plot_scatter_filtered <- function(filtered_df) {
+  
+  # Add columns for plot
+  df <- filtered_df 
+  
+  df$median_count <- apply(df, 1, median)
+  
+  df$zeroes <- apply(df, 1, function(x) sum(x < 0.00000000000001))
+  
+  #Plot 1
+  p1 <- df %>%
+        ggplot(aes()) +
+        geom_point(mapping = aes(x=median_count, y=log(variance))) +
+        theme_light() +
+        labs(x='Median Count',
+             y=str_glue('log(variance)'))
+  
+  #Plot 2
+  p2 <- df %>%
+        ggplot(aes()) +
+        geom_point(mapping = aes(x=median_count, y=zeroes)) +
+        theme_light() +
+        labs(x='Median Count',
+             y=str_glue('Zeroes'))
+  
+  # grid.arrange(p1, p2, ncol=2, nrow =1)
+  return(grid.arrange(p1, p2, ncol=2, nrow =1))
+  
+  
+}
+
+plot_scatter_filtered(filtered_table)
+
+```
+```{r}
+
+
+plot_pca <- function(filtered_df) {
+  
+  # Remove columns for plot/pca
+  df <- filtered_df[1:69]
+  
+  df_pca <- prcomp(df, center = TRUE, scale. = TRUE)
+  
+  df_pcX <- tibble(PC=str_c("PC",1:69), var_explained = df_pca$sdev**2/sum(df_pca$sdev**2)*100, cumulative_var_explained = cumsum(var_explained))
+  # 
+  # #Plot
+  # p1 <- df %>%
+  #       ggplot(aes()) +
+  #       geom_point(mapping = aes(x=median_count, y=log(variance))) +
+  #       theme_light() +
+  #       labs(x='Median Count',
+  #            y=str_glue('log(variance)'))
+  
+ 
+  return(df_pcX)
+
+}
+
+
+plot_pca(filtered_table)
+
+```
+
