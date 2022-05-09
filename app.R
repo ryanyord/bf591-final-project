@@ -14,266 +14,291 @@ options(shiny.maxRequestSize=30*1024^2)
 #++++++++++++++++++++++++++++++++UI++++++++++++++++++++++++++++++++++++++++++++
 # Define UI
 ui <- fluidPage(
-  shinyUI(navbarPage('Hello',
-  mainPanel(
-    tabsetPanel(
-      #---------------------------Tab 1: Samples------------------------------------
-      # Tab 1: Samples
-      tabPanel("Samples",
-               
-               # Sidebar layout
-               sidebarLayout(
-                 sidebarPanel(
-                   
-                   # Input: Select file
-                   fileInput(inputId='fileuploadt1',
-                             label= 'Load differential expression results:',
-                             placeholder = 'DE_results.csv'),
-                   
-                 ),
-                 
-                 
-                 mainPanel(
-                   # Tabs
-                   tabsetPanel(
-                     # Tab 1: Summary
-                     tabPanel("Summary",
-                        tableOutput('table_t1')),
-                     # Tab 2: Table
-                     tabPanel("Table",
-                        tableOutput('table_t1_2')),
-                     # Tab 3: Plots
-                     tabPanel("Plots",
-                        plotOutput('hist_plots')),
-                   )
-                 ),
-                 
-                 
-               )
-      ),
-      
-      #---------------------------Tab 2: Counts------------------------------------
-      # Tab 2: Counts
-      tabPanel("Counts",
-               
-               # Sidebar layout
-               sidebarLayout(
-                 sidebarPanel(
-                   
-                   # Input: Select file
-                   fileInput(inputId='fileuploadt2',
-                             label= 'Load counts matrix:',
-                             placeholder = 'counts.csv'),
-                   
-                   # Slider 1: at least X percentile of variance
-                   sliderInput(inputId = '',
-                               label = 'Include genes with at least X percentile of variance:',
-                               min = 0,
-                               max = 100,
-                               value = 10),
-                   
-                   # Slider 2: at least X samples that are non-zero
-                   sliderInput(inputId = '',
-                               label = 'Include genes with at least X samples that are non-zero:',
-                               min = 0,
-                               max = 100,
-                               value = 10),
-                   
-                 ),
-                 
-                 
-                 
-                 mainPanel(
-                   # Tabs
-                   tabsetPanel(
-                     # Tab 1: Summary
-                     tabPanel("Summary",
-                     ),
-                     # Tab 2: Scatter Plot
-                     tabPanel("Scatter Plot",
-                     ),
-                     # Tab 3: Heatmap
-                     tabPanel("Heatmap",
-                     ),
-                     # Tab 4: PCA
-                     tabPanel("PCA",
-                     ),
-                     
-                   )
-                 ),
-                 
-                 
-               )
-               
-               
-      ),
-      
-      #---------------------------Tab 3: Differential Expression-------------------
-      # Tab 3: Differential Expression
-      tabPanel("DE",
-               
-               
-               # Sidebar layout
-               sidebarLayout(
-                 sidebarPanel(
-                   
-                   # Input: Select file
-                   fileInput(inputId='fileuploadt3',
-                             label= 'Load differential expression results:',
-                             placeholder = 'results.csv'),
-                   
-                   # Radio button 1: x-axis
-                   radioButtons(inputId = 'xaxis',
-                                label = 'Choose x-axis variable:',
-                                choices = c('baseMean','log2FoldChange','lfcSE',
-                                            'stat', 'pvalue','padj'),
-                                selected = 'log2FoldChange'),
-                   
-                   # Radio button 2: y-axis
-                   radioButtons(inputId = 'yaxis',
-                                label = 'Choose y-axis variable:',
-                                choices = c('baseMean','log2FoldChange','lfcSE',
-                                            'stat', 'pvalue','padj'),
-                                selected = 'padj'),
-                   
-                   # Color Selection button 1: Base Color
-                   colourInput(inputId = 'basecolor',
-                               label = 'Base Point Color:',
-                               value = "#C6C6DE",
-                               showColour = "both",
-                               palette = 'square',
-                               closeOnClick = 'TRUE'),
-                   
-                   # Color Selection button 2: Above Threshold Color
-                   colourInput(inputId = 'threshcolor',
-                               label = 'Above Threshold Color:',
-                               value = "#5A50A1",
-                               showColour = "both",
-                               palette = 'square',
-                               closeOnClick = 'TRUE'),
-                   
-                   # Slider: p-adjusted threshold
-                   sliderInput(inputId = 'sliderp',
-                               label = 'Select the magnitude of the p-adjusted coloring:',
-                               min = -300,
-                               max = 0,
-                               value = -10),
-                   
-                   # Plot Button
-                   actionButton(inputId = "plotButton",
-                                label = "Plot",
-                                icon = icon('chart', class="fa fa-area-chart") )
-                   
-                 ),
-                 
-                 
-                 
-                 mainPanel(
-                   # Tabs
-                   tabsetPanel(
-                     # Tab 1: Samples
-                     tabPanel("Plot",
-                              plotOutput('volcano')),
-                     # Tab 2: Counts
-                     tabPanel("Data Table",
-                              tableOutput('table')),
-                   )
-                 ),
-                 
-                 
-               )
-      ),
-      
-      #---------------------------Tab 4: Gene Set Enrichment Analysis-------------------
-      # Tab 4: Gene Set Enrichment Analysis
-      tabPanel("GSEA",
-               
-               
-               # Sidebar layout
-               sidebarLayout(
-                 sidebarPanel(
-                   
-                   # Input: Select file
-                   fileInput(inputId='fgsea_res_input',
-                             label= 'Load fgsea results:',
-                             placeholder = 'results.csv'),
-                   
-                 ),
-                 
-                 
-                 
-                 mainPanel(
-                   # Tabs
-                   tabsetPanel(
-                     # Tab 1: Normalized Enrichment Score
-                     tabPanel("NES",
-                              
-                        sidebarPanel(
-                          # Slider: Slider to adjust number of top pathways to plot by adjusted p-value
-                          sliderInput(inputId = 'slider_nes_barplot',
-                                      label = 'Adjust number of top pathways to plot by adjusted p-value',
-                                      min = 1,
-                                      max = 50,
-                                      value = 10),
-                          
-                        ),
-                        mainPanel(
-                          plotOutput('nes_bar_plots')
-                          
-                        ),
-                     ),
-                     # Tab 2: Results Table
-                     tabPanel("Results Table",
-                              
-                        sidebarPanel(
-                          # Radio button 1: 
-                          radioButtons(inputId = 'radio_sel_t4_t2',
-                                       label = 'Filter Pathways by NES',
-                                       choices = c('All Pathways','Positive Pathways','Negative Pathways'),
-                                       selected = 'All Pathways'),
-                    
-                          
-                          # Slider: Slider to adjust number of top pathways to plot by adjusted p-value
-                          sliderInput(inputId = 'NES_table_slider',
-                                      label = 'Filter by adjusted p-value',
-                                      min = -50,
-                                      max = 0,
-                                      value = 0),
-                          
-                          # Download Button: Export current filtered and displayed table results
-                          downloadButton('download_NES_table', "Download Table"),
-                          
-                        ),
-                        mainPanel(
-                          tableOutput('NES_table_render')
-                        ),
-                     ),
-                     # Tab 3: NES Scatter Plot
-                     tabPanel("NES Scatter Plot",
-                              
-                      sidebarPanel(
-                        # Slider: Slider to adjust number of top pathways to plot by adjusted p-value
-                        sliderInput(inputId = 'NES_plot_slider',
-                                    label = 'Select the magnitude of the p-adjusted coloring:',
-                                    min = -50,
-                                    max = 0,
-                                    value = -10),
-                        
-                      ),
-                      mainPanel(
-                        plotOutput("NES_plot_render")
-                        
-                        
-                      ),
-                     ),
-                   )
-                 ),
-               )
-      ),
-    )
+  shinyUI(navbarPage("mRNA-Seq Expression profiling Huntington's Disease vs neurologically normal individuals",
+                     mainPanel(
+                       tabsetPanel(
+                         #---------------------------Tab 1: Samples------------------------------------
+                         # Tab 1: Samples
+                         tabPanel("Samples",
+                                  
+                                  # Sidebar layout
+                                  sidebarLayout(
+                                    sidebarPanel(
+                                      
+                                      # Input: Select file
+                                      fileInput(inputId='fileuploadt1',
+                                                label= 'Load differential expression results:',
+                                                placeholder = 'DE_results.csv'),
+                                      
+                                    ),
+                                    
+                                    
+                                    mainPanel(
+                                      # Tabs
+                                      tabsetPanel(
+                                        # Tab 1: Summary
+                                        tabPanel("Summary",
+                                                 tableOutput('table_t1')),
+                                        # Tab 2: Table
+                                        tabPanel("Table",
+                                                 tableOutput('table_t1_2')),
+                                        # Tab 3: Plots
+                                        tabPanel("Plots",
+                                                 plotOutput('hist_plots')),
+                                      )
+                                    ),
+                                    
+                                    
+                                  )
+                         ),
+                         
+                         #---------------------------Tab 2: Counts------------------------------------
+                         # Tab 2: Counts
+                         tabPanel("Counts",
+                                  
+                                  # Sidebar layout
+                                  sidebarLayout(
+                                    sidebarPanel(
+                                      
+                                      # Input: Select file
+                                      fileInput(inputId='fileuploadt2',
+                                                label= 'Load counts matrix:',
+                                                placeholder = 'counts.csv'),
+                                      
+                                      # Slider 1: at least X percentile of variance
+                                      sliderInput(inputId = 'slider_percentile',
+                                                  label = 'Include genes with at least X percentile of variance:',
+                                                  min = 0,
+                                                  max = 100,
+                                                  value = 10),
+                                      
+                                      # Slider 2: at least X samples that are non-zero
+                                      sliderInput(inputId = 'slider_zero',
+                                                  label = 'Include genes with at least X samples that are non-zero:',
+                                                  min = 0,
+                                                  max = 100,
+                                                  value = 10),
+                                      
+                                    ),
+                                    
+                                    
+                                    
+                                    mainPanel(
+                                      # Tabs
+                                      tabsetPanel(
+                                        # Tab 1: Summary
+                                        tabPanel("Summary",
+                                                 tableOutput('filter_summary_table')
+                                        ),
+                                        # Tab 2: Scatter Plot
+                                        tabPanel("Scatter Plot",
+                                                 plotOutput('filtered_scatterplot')
+                                        ),
+                                        # Tab 3: Heatmap
+                                        tabPanel("Heatmap",
+                                                 plotOutput('plot_heatmap')        
+                                        ),
+                                        # Tab 4: PCA
+                                        tabPanel("PCA",
+                                                 
+                                           sidebarPanel(
+                                             
+                                             # Radio button 1: PC Selection 1
+                                             radioButtons(inputId = 'PC_sel1',
+                                                          label = 'Select Principal Component to Plot',
+                                                          choices = c('PC1','PC2','PC3','PC4','PC5'),
+                                                          selected = 'PC1'),
+                                             
+                                             # Radio button 2: PC Selection 
+                                             radioButtons(inputId = 'PC_sel2',
+                                                          label = 'Select Principal Component to Plot',
+                                                          choices = c('PC1','PC2','PC3','PC4','PC5'),
+                                                          selected = 'PC2'),
+                                             
+                                           ),
+                                           mainPanel(
+                                             plotOutput('plot_pca')
+                                             
+                                           ),     
+                                                 
+                                                 
+                                        ),
+                                        
+                                      )
+                                    ),
+                                    
+                                    
+                                  )
+                                  
+                                  
+                         ),
+                         
+                         #---------------------------Tab 3: Differential Expression-------------------
+                         # Tab 3: Differential Expression
+                         tabPanel("DE",
+                                  
+                                  
+                                  # Sidebar layout
+                                  sidebarLayout(
+                                    sidebarPanel(
+                                      
+                                      # Input: Select file
+                                      fileInput(inputId='fileuploadt3',
+                                                label= 'Load differential expression results:',
+                                                placeholder = 'results.csv'),
+                                      
+                                      # Radio button 1: x-axis
+                                      radioButtons(inputId = 'xaxis',
+                                                   label = 'Choose x-axis variable:',
+                                                   choices = c('baseMean','log2FoldChange','lfcSE',
+                                                               'stat', 'pvalue','padj'),
+                                                   selected = 'log2FoldChange'),
+                                      
+                                      # Radio button 2: y-axis
+                                      radioButtons(inputId = 'yaxis',
+                                                   label = 'Choose y-axis variable:',
+                                                   choices = c('baseMean','log2FoldChange','lfcSE',
+                                                               'stat', 'pvalue','padj'),
+                                                   selected = 'padj'),
+                                      
+                                      # Color Selection button 1: Base Color
+                                      colourInput(inputId = 'basecolor',
+                                                  label = 'Base Point Color:',
+                                                  value = "#C6C6DE",
+                                                  showColour = "both",
+                                                  palette = 'square',
+                                                  closeOnClick = 'TRUE'),
+                                      
+                                      # Color Selection button 2: Above Threshold Color
+                                      colourInput(inputId = 'threshcolor',
+                                                  label = 'Above Threshold Color:',
+                                                  value = "#5A50A1",
+                                                  showColour = "both",
+                                                  palette = 'square',
+                                                  closeOnClick = 'TRUE'),
+                                      
+                                      # Slider: p-adjusted threshold
+                                      sliderInput(inputId = 'sliderp',
+                                                  label = 'Select the magnitude of the p-adjusted coloring:',
+                                                  min = -300,
+                                                  max = 0,
+                                                  value = -10),
+                                      
+                                      # Plot Button
+                                      actionButton(inputId = "plotButton",
+                                                   label = "Plot",
+                                                   icon = icon('chart', class="fa fa-area-chart") )
+                                      
+                                    ),
+                                    
+                                    
+                                    
+                                    mainPanel(
+                                      # Tabs
+                                      tabsetPanel(
+                                        # Tab 1: Samples
+                                        tabPanel("Plot",
+                                                 plotOutput('volcano')),
+                                        # Tab 2: Counts
+                                        tabPanel("Data Table",
+                                                 tableOutput('table')),
+                                      )
+                                    ),
+                                    
+                                    
+                                  )
+                         ),
+                         
+                         #---------------------------Tab 4: Gene Set Enrichment Analysis-------------------
+                         # Tab 4: Gene Set Enrichment Analysis
+                         tabPanel("GSEA",
+                                  
+                                  
+                                  # Sidebar layout
+                                  sidebarLayout(
+                                    sidebarPanel(
+                                      
+                                      # Input: Select file
+                                      fileInput(inputId='fgsea_res_input',
+                                                label= 'Load fgsea results:',
+                                                placeholder = 'results.csv'),
+                                      
+                                    ),
+                                    
+                                    
+                                    
+                                    mainPanel(
+                                      # Tabs
+                                      tabsetPanel(
+                                        # Tab 1: Normalized Enrichment Score
+                                        tabPanel("NES",
+                                                 
+                                                 sidebarPanel(
+                                                   # Slider: Slider to adjust number of top pathways to plot by adjusted p-value
+                                                   sliderInput(inputId = 'slider_nes_barplot',
+                                                               label = 'Adjust number of top pathways to plot by adjusted p-value',
+                                                               min = 1,
+                                                               max = 50,
+                                                               value = 10),
+                                                   
+                                                 ),
+                                                 mainPanel(
+                                                   plotOutput('nes_bar_plots')
+                                                   
+                                                 ),
+                                        ),
+                                        # Tab 2: Results Table
+                                        tabPanel("Results Table",
+                                                 
+                                                 sidebarPanel(
+                                                   # Radio button 1: 
+                                                   radioButtons(inputId = 'radio_sel_t4_t2',
+                                                                label = 'Filter Pathways by NES',
+                                                                choices = c('All Pathways','Positive Pathways','Negative Pathways'),
+                                                                selected = 'All Pathways'),
+                                                   
+                                                   
+                                                   # Slider: Slider to adjust number of top pathways to plot by adjusted p-value
+                                                   sliderInput(inputId = 'NES_table_slider',
+                                                               label = 'Filter by adjusted p-value',
+                                                               min = -50,
+                                                               max = 0,
+                                                               value = 0),
+                                                   
+                                                   # Download Button: Export current filtered and displayed table results
+                                                   downloadButton('download_NES_table', "Download Table"),
+                                                   
+                                                 ),
+                                                 mainPanel(
+                                                   tableOutput('NES_table_render')
+                                                 ),
+                                        ),
+                                        # Tab 3: NES Scatter Plot
+                                        tabPanel("NES Scatter Plot",
+                                                 
+                                                 sidebarPanel(
+                                                   # Slider: Slider to adjust number of top pathways to plot by adjusted p-value
+                                                   sliderInput(inputId = 'NES_plot_slider',
+                                                               label = 'Select the magnitude of the p-adjusted coloring:',
+                                                               min = -50,
+                                                               max = 0,
+                                                               value = -10),
+                                                   
+                                                 ),
+                                                 mainPanel(
+                                                   plotOutput("NES_plot_render")
+                                                   
+                                                   
+                                                 ),
+                                        ),
+                                      )
+                                    ),
+                                  )
+                         ),
+                       )
+                     )
   )
-)
-)
+  )
 )
 
 
@@ -383,7 +408,7 @@ server <- function(input, output, session) {
   
   draw_summary_table_counts <- function(filtered_df, unfiltered_df) {
     
-    return_df <- data.frame(sample_count = ncol(unfiltered_df),
+    return_df <- data.frame(sample_count = ncol(unfiltered_df)-1,
                             gene_count = nrow(unfiltered_df),
                             genes_passing_filter = nrow(filtered_df),
                             percent_genes_passing_filter = nrow(filtered_df)/nrow(unfiltered_df),
@@ -394,12 +419,91 @@ server <- function(input, output, session) {
     return(return_df)
   }
   
-  # output$ <- renderTable({req(input$fileuploadt2)
-  #   draw_summary_table_counts(fgsdfgsdfgsdfg, input$NES_table_slider, input$radio_sel_t4_t2)
-  # })
-
+  output$filter_summary_table <- renderTable({req(input$fileuploadt2)
+    draw_summary_table_counts(draw_table_filtered_counts(load_data_t2(), input$slider_percentile, input$slider_zero), load_data_t2())
+  })
+  
+  #---------------------------T2----------------------
+  
+  plot_scatter_filtered <- function(filtered_df) {
+    
+    # Add columns for plot
+    df <- filtered_df
+    
+    df$median_count <- apply(df, 1, median)
+    
+    df$zeroes <- apply(df, 1, function(x) sum(x < 0.00000000000001))
+    
+    #Plot 1
+    p1 <- df %>%
+      ggplot(aes()) +
+      geom_point(mapping = aes(x=median_count, y=log(variance))) +
+      theme_light() +
+      labs(x='Median Count',
+           y=str_glue('log(variance)'))
+    
+    #Plot 2
+    p2 <- df %>%
+      ggplot(aes()) +
+      geom_point(mapping = aes(x=median_count, y=zeroes)) +
+      theme_light() +
+      labs(x='Median Count',
+           y=str_glue('Zeroes'))
+    
+    # grid.arrange(p1, p2, ncol=2, nrow =1)
+    return(grid.arrange(p1, p2, ncol=2, nrow =1))
+  }
   
   
+  output$filtered_scatterplot <- renderPlot({req(input$fileuploadt2)
+    plot_scatter_filtered(draw_table_filtered_counts(load_data_t2(), input$slider_percentile, input$slider_zero))
+  })
+  
+  #---------------------------T3----------------------
+  
+  draw_heatmap <- function(filtered_df) {
+    
+    filtered_df <- filtered_df %>%
+      dplyr::select(-variance, -var_rank, -nonzeroes)
+    
+    filtered_matrix <- data.matrix(filtered_df)  
+    
+    
+    return(pheatmap(data.matrix(filtered_matrix), scale='row',  show_colnames = F))
+  }
+  
+  output$plot_heatmap <- renderPlot({req(input$fileuploadt2)
+    draw_heatmap(draw_table_filtered_counts(load_data_t2(), input$slider_percentile, input$slider_zero))
+  })
+  
+  #---------------------------T4----------------------
+  
+  plot_pca <- function(filtered_df, pc_sel1, pc_sel2) {
+    
+    # Remove columns for plot/pca
+    df <- t(filtered_df[1:69])
+    
+    df_pca <- prcomp(df, center = TRUE, scale. = TRUE)
+    
+    df_pcs <- tibble(PC=str_c("PC",1:69), var_explained = df_pca$sdev**2/sum(df_pca$sdev**2)*100, cumulative_var_explained = cumsum(var_explained))
+    
+    df_pcX <- as_tibble(df_pca$x)
+    #Plot
+    p <- df_pcX %>%
+      ggplot(aes()) +
+      geom_point(mapping = aes(x=!!sym(pc_sel1), y=!!sym(pc_sel2))) +
+      theme_light() +
+      labs(x=str_glue('{pc_sel1}: % Explained {round(df_pcs$var_explained[df_pcs$PC=={pc_sel1}],2)}'),
+           y=str_glue('{pc_sel2}: % Explained {round(df_pcs$var_explained[df_pcs$PC=={pc_sel2}],2)}'))
+    
+    
+    return(p)
+    
+  }
+  
+  output$plot_pca <- renderPlot({req(input$fileuploadt2)
+    plot_pca(draw_table_filtered_counts(load_data_t2(), input$slider_percentile, input$slider_zero), input$PC_sel1, input$PC_sel2)
+  })
   
   
   #---------------------------Tab 3: Differential Expression----------------------  
@@ -461,7 +565,7 @@ server <- function(input, output, session) {
   
   
   
-#---------------------------Tab 4: Differential Expression----------------------
+  #---------------------------Tab 4: Differential Expression----------------------
   
   #' load_Data
   #'
@@ -543,7 +647,7 @@ server <- function(input, output, session) {
     return(filtered)
   }
   
-
+  
   
   output$NES_table_render <- renderTable({req(input$fgsea_res_input)
     draw_table_NES(load_data_t4(), input$NES_table_slider, input$radio_sel_t4_t2)
@@ -577,7 +681,7 @@ server <- function(input, output, session) {
   })
   
   
-#---------------------------------------------------------------------------------  
+  #---------------------------------------------------------------------------------  
 }
 
 
