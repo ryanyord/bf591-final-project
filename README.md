@@ -1,4 +1,6 @@
 # bf591-final-project
+Link to hosted webapp: [https://ryord.shinyapps.io/bf591-final-project/](https://ryord.shinyapps.io/bf591-final-project/)
+
 ![website](https://i.imgur.com/TeXw1eF.png)
 
 [Video Overview](https://www.youtube.com/watch?v=27cXyJNO2Us&t=7s)
