@@ -35,3 +35,5 @@ Files to upload can be downloaded [https://drive.google.com/drive/folders/1eAhvP
 | Tab 2 | TabGSE64810_mlhd_DESeq2_norm_counts_adjust.csv                 |
 | Tab 3 | GSE64810_mlhd_DESeq2_diffexp_DESeq2_outlier_trimmed_adjust.csv |
 | Tab 4 | fgsea_results_GSE64810_mlhd_DESeq2_diffexp_DESeq2.csv          |
+
+* Data obtained from [https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE64810](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE64810)
