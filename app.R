@@ -72,7 +72,7 @@ ui <- fluidPage(
                                                   label = 'Include genes with at least X percentile of variance:',
                                                   min = 0,
                                                   max = 100,
-                                                  value = 10),
+                                                  value = 80),
                                       
                                       # Slider 2: at least X samples that are non-zero
                                       sliderInput(inputId = 'slider_zero',
