@@ -9,6 +9,7 @@ library(colourpicker)
 library(Hmisc)
 library(gridExtra)
 library(pheatmap)
+library("shinycssloaders")
 options(shiny.maxRequestSize=30*1024^2)
 
 #++++++++++++++++++++++++++++++++UI++++++++++++++++++++++++++++++++++++++++++++
