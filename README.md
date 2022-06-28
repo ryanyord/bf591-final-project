@@ -1,7 +1,7 @@
 # Overview
 Shiny app to visualize mRNA-Seq expression data profiling Huntington's Disease vs neurologically normal individuals
 
-Link to hosted webapp: [https://ryord.shinyapps.io/bf591-final-project/](https://ryord.shinyapps.io/bf591-final-project/)
+Link to hosted webapp: [https://ryord.shinyapps.io/mRNA-Seq-Shiny-Visualization/](https://ryord.shinyapps.io/mRNA-Seq-Shiny-Visualization/)
 
 ![website](https://i.imgur.com/TeXw1eF.png)
 
