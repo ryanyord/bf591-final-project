@@ -31,9 +31,9 @@ Files to upload can be downloaded [https://drive.google.com/drive/folders/1eAhvP
 
 |  | File upload for each tab:                                                |
 |-------|----------------------------------------------------------------|
-| Tab 1 | SraRunTable.csv                                                |
-| Tab 2 | TabGSE64810_mlhd_DESeq2_norm_counts_adjust.csv                 |
-| Tab 3 | GSE64810_mlhd_DESeq2_diffexp_DESeq2_outlier_trimmed_adjust.csv |
-| Tab 4 | fgsea_results_GSE64810_mlhd_DESeq2_diffexp_DESeq2.csv          |
+| Tab 1 | Samples.csv                                                |
+| Tab 2 | Counts.csv                 |
+| Tab 3 | DE.csv |
+| Tab 4 | GSEA.csv          |
 
 * Data obtained from [https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE64810](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE64810)
