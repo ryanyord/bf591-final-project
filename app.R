@@ -94,11 +94,11 @@ ui <- fluidPage(
                                         ),
                                         # Tab 2: Scatter Plot
                                         tabPanel("Scatter Plot",
-                                                 plotOutput('filtered_scatterplot')
+                                                 plotOutput('filtered_scatterplot') %>% withSpinner()
                                         ),
                                         # Tab 3: Heatmap
                                         tabPanel("Heatmap",
-                                                 plotOutput('plot_heatmap')        
+                                                 plotOutput('plot_heatmap') %>% withSpinner()        
                                         ),
                                         # Tab 4: PCA
                                         tabPanel("PCA",
@@ -119,7 +119,7 @@ ui <- fluidPage(
                                              
                                            ),
                                            mainPanel(
-                                             plotOutput('plot_pca')
+                                             plotOutput('plot_pca') %>% withSpinner()
                                              
                                            ),     
                                                  
@@ -200,7 +200,7 @@ ui <- fluidPage(
                                       tabsetPanel(
                                         # Tab 1: Samples
                                         tabPanel("Plot",
-                                                 plotOutput('volcano'),
+                                                 plotOutput('volcano') %>% withSpinner(),
                                                  width = "1200px",
                                                  height = "1200px"),
                                         # Tab 2: Counts
@@ -249,7 +249,7 @@ ui <- fluidPage(
                                                  mainPanel(
                                                    plotOutput('nes_bar_plots',
                                                               width = "800px",
-                                                              height = "800px")
+                                                              height = "800px") %>% withSpinner()
                                                    
                                                  ),
                                         ),
@@ -294,7 +294,7 @@ ui <- fluidPage(
                                                  mainPanel(
                                                    plotOutput("NES_plot_render",
                                                               width = "800px",
-                                                              height = "800px")
+                                                              height = "800px") %>% withSpinner()
                                                    
                                                    
                                                  ),
